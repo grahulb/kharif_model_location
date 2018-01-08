@@ -221,13 +221,22 @@ class KharifModelPoint:
             #    removed on close (see self.onClosePlugin method)
             if self.dockwidget == None:
                 # Create the dockwidget (after translation) and keep reference
-                self.dockwidget = KharifModelPointDockWidget()
+                self.dockwidget = KharifModelPointDockWidget(iface=self.iface)
 
             # connect to provide cleanup on closing of dockwidget
             self.dockwidget.closingPlugin.connect(self.onClosePlugin)
+            
+            # self.customize_dockwidget()
 
             # show the dockwidget
             # TODO: fix to allow choice of dock location
-            self.iface.addDockWidget(Qt.RightDockWidgetArea, self.dockwidget)
+            self.iface.addDockWidget(Qt.TopDockWidgetArea, self.dockwidget)
             self.dockwidget.show()
-
+            
+    def customize_dockwidget(self):
+        print self.dockwidget.ET0
+        for i in range(1, 13):
+            self.dockwidget.ET0.item(0, 0).setTextAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
+        for i in range(1, 366):
+            for j in range(1, 11):
+                self.dockwidget.results.item(i, j).setTextAlignment(Qt.AlignHCenter|Qt.AlignVCenter)
