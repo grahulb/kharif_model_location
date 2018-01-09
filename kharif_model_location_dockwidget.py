@@ -25,8 +25,8 @@ import os, csv, datetime
 
 from PyQt4 import QtGui, uic
 from PyQt4.QtCore import pyqtSignal
-from qgis.gui import QgsMapTool
-from qgis.core import QgsRaster
+from qgis.gui import QgsMapTool, QgsMapToolPan
+from qgis.core import QgsRaster, QgsMapLayerRegistry
 from kharif_model_point_model import PointModel, Crop
 from constants_dicts_lookups import *
 
@@ -60,6 +60,7 @@ class KharifModelPointDockWidget(QtGui.QDockWidget, FORM_CLASS):
 		self.last_path = ''
 		self.folder_path_browse.clicked.connect(
 			lambda: self.on_browse(self.folder_path, 'Folder containing the data-set', folder=True))
+		self.input_layers = {}
 		self.load_inputs_button.clicked.connect(self.load_inputs)
 		self.pick_point_button.clicked.connect(self.activate_mapTool)
 		self.picking_mode = False
@@ -84,21 +85,32 @@ class KharifModelPointDockWidget(QtGui.QDockWidget, FORM_CLASS):
 		self.last_path = os.path.dirname(path)
 	
 	def load_inputs(self):
+		if 'soil_layer' in self.input_layers:
+			QgsMapLayerRegistry.instance().removeMapLayer(self.input_layers['soil_layer'])
+		if 'lulc_layer' in self.input_layers:
+			QgsMapLayerRegistry.instance().removeMapLayer(self.input_layers['lulc_layer'])
+		if 'slope_layer' in self.input_layers:
+			QgsMapLayerRegistry.instance().removeMapLayer(self.input_layers['slope_layer'])
 		path = self.folder_path.text()
-		self.input_layers = {}
 		self.input_layers['soil_layer'] = self.iface.addVectorLayer(os.path.join(path, 'Soil.shp'), 'Soil Cover', 'ogr')
 		self.input_layers['lulc_layer'] = self.iface.addVectorLayer(os.path.join(path, 'LULC.shp'), 'Land-Use-Land-Cover', 'ogr')
 		self.input_layers['slope_layer'] = self.iface.addRasterLayer(os.path.join(path, 'Slope.tif'), 'Slope')
+		self.iface.mapCanvas().setExtent(self.input_layers['slope_layer'].extent())
 		
 		if os.path.exists(os.path.join(path, 'Rainfall.csv')):  self.rainfall_csv_filepath.setText(os.path.join(path, 'Rainfall.csv'))
 		i = 0
 		for row in csv.DictReader(open(os.path.join(path, 'ET0_file.csv'))):
 			self.ET0.setItem(i, 0, QtGui.QTableWidgetItem(row["ET0"]))
 			i += 1
+		#Reset picking mode for any newly loaded dataset
+		self.picking_mode = False
+		self.pick_point_button.setText('Pick a Point')
+		self.iface.mapCanvas().setMapTool(QgsMapToolPan(self.iface.mapCanvas()))
+		
 	
 	def activate_mapTool(self):
 		if self.picking_mode:
-			self.pointTool = None
+			self.iface.mapCanvas().setMapTool(QgsMapToolPan(self.iface.mapCanvas()))
 			self.pick_point_button.setText('Pick a Point')
 			self.picking_mode = False
 		else:
