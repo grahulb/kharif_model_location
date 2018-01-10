@@ -24,7 +24,7 @@
 import os, csv, datetime
 
 from PyQt4 import QtGui, uic
-from PyQt4.QtCore import pyqtSignal
+from PyQt4.QtCore import pyqtSignal, Qt
 from qgis.gui import QgsMapTool, QgsMapToolPan
 from qgis.core import QgsRaster, QgsMapLayerRegistry
 from kharif_model_point_model import PointModel, Crop
@@ -47,6 +47,14 @@ class KharifModelPointDockWidget(QtGui.QDockWidget, FORM_CLASS):
 		# http://qt-project.org/doc/qt-4.8/designer-using-a-ui-file.html
 		# #widgets-and-dialogs-with-auto-connect
 		self.setupUi(self)
+		
+		self.results.setHorizontalHeaderLabels([
+				'Date', 'Rainfall', 'SM', 'Runoff', 'Infiltration', 'PET', 'AET', 'GW Recharge'
+		])
+		self.results.setVerticalHeaderLabels(['Monsoon End Summary', 'Crop End Summary'] +
+		                                     ['Day ' + str(i)    for i in range(1, 366)])
+		for i in range(367):
+			self.results.verticalHeaderItem(i).setTextAlignment(Qt.AlignRight)
 		
 		self.iface = iface
 		self.all_textures = dict_SoilProperties.keys();  self.all_textures.remove('soil type')
@@ -170,15 +178,32 @@ class KharifModelPointDockWidget(QtGui.QDockWidget, FORM_CLASS):
 				return datetime.date.fromordinal(datetime.date(2016, 12, 31).toordinal() + 151 + (i+1)).strftime('%d %B')
 			else:
 				return datetime.date.fromordinal(datetime.date(2016, 12, 31).toordinal() + 365 + ((i-214)+1)).strftime('%d %B')
+		self.results.setItem(0, 0, QtGui.QTableWidgetItem('30 November'))
+		self.results.setItem(0, 1, QtGui.QTableWidgetItem('{}'.format(sum(self.rain[:183]))))
+		self.results.setItem(0, 2, QtGui.QTableWidgetItem('{:6.2f}'.format(self.point_model.budget.sm[182])))
+		self.results.setItem(0, 3, QtGui.QTableWidgetItem('{:6.2f}'.format(sum(self.point_model.budget.runoff[:183]))))
+		self.results.setItem(0, 4, QtGui.QTableWidgetItem('{:6.2f}'.format(sum(self.point_model.budget.infil[:183]))))
+		self.results.setItem(0, 5, QtGui.QTableWidgetItem('{:6.2f}'.format(sum(crop.PET[:183]))))
+		self.results.setItem(0, 6, QtGui.QTableWidgetItem('{:6.2f}'.format(sum(self.point_model.budget.AET[:183]))))
+		self.results.setItem(0, 7, QtGui.QTableWidgetItem('{:6.2f}'.format(sum(self.point_model.budget.GW_rech[:183]))))
+		
+		self.results.setItem(1, 0, QtGui.QTableWidgetItem(get_date_from_index(crop.end_date_index)))
+		self.results.setItem(1, 1, QtGui.QTableWidgetItem('{}'.format(sum(self.rain[:crop.end_date_index+1]))))
+		self.results.setItem(1, 2, QtGui.QTableWidgetItem('{:6.2f}'.format(self.point_model.budget.sm[crop.end_date_index])))
+		self.results.setItem(1, 3, QtGui.QTableWidgetItem('{:6.2f}'.format(sum(self.point_model.budget.runoff[:crop.end_date_index+1]))))
+		self.results.setItem(1, 4, QtGui.QTableWidgetItem('{:6.2f}'.format(sum(self.point_model.budget.infil[:crop.end_date_index+1]))))
+		self.results.setItem(1, 5, QtGui.QTableWidgetItem('{:6.2f}'.format(sum(crop.PET[:crop.end_date_index+1]))))
+		self.results.setItem(1, 6, QtGui.QTableWidgetItem('{:6.2f}'.format(sum(self.point_model.budget.AET[:crop.end_date_index+1]))))
+		self.results.setItem(1, 7, QtGui.QTableWidgetItem('{:6.2f}'.format(sum(self.point_model.budget.GW_rech[:crop.end_date_index+1]))))
 		for i in range(model_duration):
-			self.results.setItem(i, 0, QtGui.QTableWidgetItem(get_date_from_index(i)))    # Date
-			self.results.setItem(i, 1, QtGui.QTableWidgetItem(str(self.rain[i])))    # Rain
-			self.results.setItem(i, 2, QtGui.QTableWidgetItem(str(self.point_model.budget.sm[i])))    # SM
-			self.results.setItem(i, 3, QtGui.QTableWidgetItem(str(self.point_model.budget.runoff[i])))    # Runoff
-			self.results.setItem(i, 4, QtGui.QTableWidgetItem(str(self.point_model.budget.infil[i])))    # Infiltration
-			self.results.setItem(i, 5, QtGui.QTableWidgetItem(str(crop.PET[i])))    # PET
-			self.results.setItem(i, 6, QtGui.QTableWidgetItem(str(self.point_model.budget.AET[i])))    # AET
-			self.results.setItem(i, 7, QtGui.QTableWidgetItem(str(self.point_model.budget.GW_rech[i])))    # GW Recharge
+			self.results.setItem(i+2, 0, QtGui.QTableWidgetItem(get_date_from_index(i)))    # Date
+			self.results.setItem(i+2, 1, QtGui.QTableWidgetItem('{}'.format(self.rain[i])))    # Rain
+			self.results.setItem(i+2, 2, QtGui.QTableWidgetItem('{:6.2f}'.format(float(self.point_model.budget.sm[i]))))    # SM
+			self.results.setItem(i+2, 3, QtGui.QTableWidgetItem('{:6.2f}'.format(float(self.point_model.budget.runoff[i]))))    # Runoff
+			self.results.setItem(i+2, 4, QtGui.QTableWidgetItem('{:6.2f}'.format(float(self.point_model.budget.infil[i]))))    # Infiltration
+			self.results.setItem(i+2, 5, QtGui.QTableWidgetItem('{:6.2f}'.format(float(crop.PET[i]))))    # PET
+			self.results.setItem(i+2, 6, QtGui.QTableWidgetItem('{:6.2f}'.format(float(self.point_model.budget.AET[i]))))    # AET
+			self.results.setItem(i+2, 7, QtGui.QTableWidgetItem('{:6.2f}'.format(float(self.point_model.budget.GW_rech[i]))))    # GW Recharge
 	
 	def closeEvent(self, event):
 		self.closingPlugin.emit()
