@@ -106,10 +106,9 @@ class KharifModelPointDockWidget(QtGui.QDockWidget, FORM_CLASS):
 		self.iface.mapCanvas().setExtent(self.input_layers['slope_layer'].extent())
 		
 		if os.path.exists(os.path.join(path, 'Rainfall.csv')):  self.rainfall_csv_filepath.setText(os.path.join(path, 'Rainfall.csv'))
-		i = 0
-		for row in csv.DictReader(open(os.path.join(path, 'ET0_file.csv'))):
-			self.ET0.setItem(i, 0, QtGui.QTableWidgetItem(row["ET0"]))
-			i += 1
+		et0_dict = list(csv.DictReader(open(os.path.join(path, 'ET0.csv'))))[0]
+		for month, i in zip(['Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May'], range(12)):
+			self.ET0.setItem(i, 0, QtGui.QTableWidgetItem(et0_dict[month]))
 		#Reset picking mode for any newly loaded dataset
 		self.picking_mode = False
 		self.pick_point_button.setText('Pick a Point')
@@ -138,7 +137,7 @@ class KharifModelPointDockWidget(QtGui.QDockWidget, FORM_CLASS):
 				break
 		for feature in self.input_layers['lulc_layer'].getFeatures():
 			if feature.geometry().contains(qgsPoint):
-				self.lulc_type.setCurrentIndex(self.all_broad_lulc_types.index(dict_lulc[feature[Desc].lower()]))
+				self.lulc_type.setCurrentIndex(self.all_broad_lulc_types.index(dict_lulc[str(feature[Desc].lower())]))
 				break
 		self.slope.setText(str(self.input_layers['slope_layer'].dataProvider().identify(qgsPoint, QgsRaster.IdentifyFormatValue).results()[1]))
 	
@@ -165,7 +164,7 @@ class KharifModelPointDockWidget(QtGui.QDockWidget, FORM_CLASS):
 		self.inputs['soil_texture'] = self.soil_texture.currentText()
 		self.inputs['depth_value'] = dict_SoilDep[self.soil_depth.currentText()]
 		self.inputs['lulc_type'] = self.lulc_type.currentText()
-		self.inputs['rain'] = [int(row["Rainfall"]) for row in csv.DictReader(open(self.rainfall_csv_filepath.text()))]
+		self.inputs['rain'] = [int(float(row["Rainfall"])) for row in csv.DictReader(open(self.rainfall_csv_filepath.text()))]
 		self.inputs['slope'] = float(self.slope.text())
 		self.inputs['et0'] = [];    days_of_month = [30,31,31,30,31,30,31,31,28,31,30,31]
 		for i in range(12):
@@ -179,7 +178,7 @@ class KharifModelPointDockWidget(QtGui.QDockWidget, FORM_CLASS):
 			else:
 				return datetime.date.fromordinal(datetime.date(2016, 12, 31).toordinal() + 365 + ((i-214)+1)).strftime('%d %B')
 		self.results.setItem(0, 0, QtGui.QTableWidgetItem('30 November'))
-		self.results.setItem(0, 1, QtGui.QTableWidgetItem('{}'.format(sum(self.rain[:183]))))
+		self.results.setItem(0, 1, QtGui.QTableWidgetItem('{}'.format(sum(self.point_model.budget.rain[:183]))))
 		self.results.setItem(0, 2, QtGui.QTableWidgetItem('{:6.2f}'.format(self.point_model.budget.sm[182])))
 		self.results.setItem(0, 3, QtGui.QTableWidgetItem('{:6.2f}'.format(sum(self.point_model.budget.runoff[:183]))))
 		self.results.setItem(0, 4, QtGui.QTableWidgetItem('{:6.2f}'.format(sum(self.point_model.budget.infil[:183]))))
@@ -188,7 +187,7 @@ class KharifModelPointDockWidget(QtGui.QDockWidget, FORM_CLASS):
 		self.results.setItem(0, 7, QtGui.QTableWidgetItem('{:6.2f}'.format(sum(self.point_model.budget.GW_rech[:183]))))
 		
 		self.results.setItem(1, 0, QtGui.QTableWidgetItem(get_date_from_index(crop.end_date_index)))
-		self.results.setItem(1, 1, QtGui.QTableWidgetItem('{}'.format(sum(self.rain[:crop.end_date_index+1]))))
+		self.results.setItem(1, 1, QtGui.QTableWidgetItem('{}'.format(sum(self.point_model.budget.rain[:crop.end_date_index+1]))))
 		self.results.setItem(1, 2, QtGui.QTableWidgetItem('{:6.2f}'.format(self.point_model.budget.sm[crop.end_date_index])))
 		self.results.setItem(1, 3, QtGui.QTableWidgetItem('{:6.2f}'.format(sum(self.point_model.budget.runoff[:crop.end_date_index+1]))))
 		self.results.setItem(1, 4, QtGui.QTableWidgetItem('{:6.2f}'.format(sum(self.point_model.budget.infil[:crop.end_date_index+1]))))
@@ -197,7 +196,7 @@ class KharifModelPointDockWidget(QtGui.QDockWidget, FORM_CLASS):
 		self.results.setItem(1, 7, QtGui.QTableWidgetItem('{:6.2f}'.format(sum(self.point_model.budget.GW_rech[:crop.end_date_index+1]))))
 		for i in range(model_duration):
 			self.results.setItem(i+2, 0, QtGui.QTableWidgetItem(get_date_from_index(i)))    # Date
-			self.results.setItem(i+2, 1, QtGui.QTableWidgetItem('{}'.format(self.rain[i])))    # Rain
+			self.results.setItem(i+2, 1, QtGui.QTableWidgetItem('{}'.format(self.point_model.budget.rain[i])))    # Rain
 			self.results.setItem(i+2, 2, QtGui.QTableWidgetItem('{:6.2f}'.format(float(self.point_model.budget.sm[i]))))    # SM
 			self.results.setItem(i+2, 3, QtGui.QTableWidgetItem('{:6.2f}'.format(float(self.point_model.budget.runoff[i]))))    # Runoff
 			self.results.setItem(i+2, 4, QtGui.QTableWidgetItem('{:6.2f}'.format(float(self.point_model.budget.infil[i]))))    # Infiltration

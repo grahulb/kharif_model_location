@@ -1,10 +1,11 @@
 ########	Constants Start	########
 
 NEW_LU= 'LU_Type'
-Desc = 'Descriptio'
+Desc = 'descriptio'
 TEX = 'TEXTURE'
 Depth = 'DEPTH'
 MONSOON_END_INDEX = 182
+RUNOFF_THRESHOLD = 0
 
 ########	Constants End	########
 
@@ -14,6 +15,9 @@ MONSOON_END_INDEX = 182
 
 #Dictionary for generic land use types:
 dict_lulc = {
+	'fallow land': 'fallow land',
+	'kharif': 'agriculture',
+	'rabi': 'agriculture',
 	'forest-forest blank':'scrub forest',
 	'forest-deciduous (dry/moist/thorn)-open': 'deciduous open',
 	'agricultural land-crop land-rabi crop': 'agriculture',

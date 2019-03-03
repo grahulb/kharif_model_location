@@ -4,7 +4,7 @@ from math import exp, log
 class Budget:
 
 	def __init__(self):
-		self.sm, self.runoff, self.infil, self.AET, self.GW_rech = [],[],[],[],[]
+		self.sm, self.rain, self.runoff, self.infil, self.AET, self.GW_rech = [],[],[],[],[],[]
 
 class Crop:
 	def __init__(self, name, sowing_threshold):
@@ -114,8 +114,11 @@ class PointModel:
 		Cn_swat = 25400 / float(S_swat + 254)
 		Ia_swat = 0.2 * S_swat
 		# ~ print 'len(rain), day : ', len(rain), day
-		if (rain[day] > Ia_swat):
-			self.budget.runoff.append(((rain[day] - Ia_swat) ** 2) / (rain[day] + 0.8 * S_swat))
+		effective_rain = rain[day] + (0 if (day == 0 or self.budget.runoff[day-1] >= RUNOFF_THRESHOLD) else self.budget.runoff[day-1])
+		self.budget.rain.append(effective_rain)
+		if (effective_rain > Ia_swat):
+			estimated_runoff = ((effective_rain - Ia_swat) ** 2) / (effective_rain + 0.8 * S_swat)
+			self.budget.runoff.append(estimated_runoff if estimated_runoff > RUNOFF_THRESHOLD else 0)
 		else:
 			self.budget.runoff.append(0)
 		self.budget.infil.append(rain[day] - self.budget.runoff[day])
