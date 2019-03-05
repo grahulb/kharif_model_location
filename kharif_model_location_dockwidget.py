@@ -26,7 +26,7 @@ import os, csv, datetime
 from PyQt4 import QtGui, uic
 from PyQt4.QtCore import pyqtSignal, Qt
 from qgis.gui import QgsMapTool, QgsMapToolPan
-from qgis.core import QgsRaster, QgsMapLayerRegistry
+from qgis.core import QgsPoint, QgsRaster, QgsMapLayerRegistry
 from kharif_model_point_model import PointModel, Crop
 from constants_dicts_lookups import *
 
@@ -67,27 +67,35 @@ class KharifModelPointDockWidget(QtGui.QDockWidget, FORM_CLASS):
 		
 		self.last_path = ''
 		self.folder_path_browse.clicked.connect(
-			lambda: self.on_browse(self.folder_path, 'Folder containing the data-set', folder=True))
+			lambda: self.on_browse(self.folder_path, 'Folder containing the data-set', folder=True)
+		)
 		self.input_layers = {}
 		self.load_inputs_button.clicked.connect(self.load_inputs)
 		self.pick_point_button.clicked.connect(self.activate_mapTool)
 		self.picking_mode = False
 		
+		self.get_data_at_xy_button.clicked.connect(lambda: self.on_get_data_at_xy())
+		
 		self.rainfall_file_browse.clicked.connect(
-			lambda: self.on_browse(self.rainfall_csv_filepath, 'Daily Rainfall CSV File', 'CSV files (*.csv)'))
+			lambda: self.on_browse(self.rainfall_csv_filepath, 'Daily Rainfall CSV File', 'CSV files (*.csv)')
+		)
+		
+		self.save_file_path_browse.clicked.connect(
+			lambda: self.on_browse(self.save_file_path, 'Save report to file...', 'CSV files (*.csv)', save=True)
+		)
 		
 		self.run_button.clicked.connect(self.process_run_command)
 	
 	def on_browse(self, lineEdit, caption, fltr='', folder=False, save=False):
 		if folder:
-			if save:
-				path = QtGui.QFileDialog.getSaveFileName(self, caption, self.last_path, '.png')
-			else:
-				path = QtGui.QFileDialog.getExistingDirectory(self, caption, self.last_path)
-				self.last_path = path
-				# self.autofill(path)
+			path = QtGui.QFileDialog.getExistingDirectory(self, caption, self.last_path)
+			self.last_path = path
+			# self.autofill(path)
 		else:
-			path = QtGui.QFileDialog.getOpenFileName(self, caption, self.last_path, fltr)
+			if save:
+				path = QtGui.QFileDialog.getSaveFileName(self, caption, self.last_path)
+			else:
+				path = QtGui.QFileDialog.getOpenFileName(self, caption, self.last_path, fltr)
 		lineEdit.setText(path)
 		# if not self.folder_path.text():
 		self.last_path = os.path.dirname(path)
@@ -140,6 +148,16 @@ class KharifModelPointDockWidget(QtGui.QDockWidget, FORM_CLASS):
 				self.lulc_type.setCurrentIndex(self.all_broad_lulc_types.index(dict_lulc[str(feature[Desc].lower())]))
 				break
 		self.slope.setText(str(self.input_layers['slope_layer'].dataProvider().identify(qgsPoint, QgsRaster.IdentifyFormatValue).results()[1]))
+		self.coordinate_x.setText(str(qgsPoint.x()))
+		self.coordinate_y.setText(str(qgsPoint.y()))
+	
+	def on_get_data_at_xy(self):
+		try:
+			x = float(self.coordinate_x.text())
+			y = float(self.coordinate_y.text())
+		except:
+			return
+		self.set_location_inputs(QgsPoint(x, y))
 	
 	def process_run_command(self):
 		self.set_inputs()
@@ -147,15 +165,18 @@ class KharifModelPointDockWidget(QtGui.QDockWidget, FORM_CLASS):
 		model_duration = max(crop.end_date_index, MONSOON_END_INDEX) + 1
 		self.rain = self.inputs['rain'] + [0] * (model_duration - len(self.inputs['rain']))
 		crop.calculate_PET(self.rain, self.inputs['et0'], model_duration)
-		self.point_model = PointModel   (
-											self.inputs['soil_texture'],
-											self.inputs['depth_value'],
-											self.inputs['lulc_type'],
-											self.inputs['slope'],
-											crop
-										)
+		self.point_model = PointModel (
+			self.inputs['soil_texture'],
+			self.inputs['depth_value'],
+			self.inputs['lulc_type'],
+			self.inputs['slope'],
+			crop
+		)
 		self.point_model.run_model(self.rain, model_duration)
 		self.set_output(crop, model_duration)
+		save_file_path = self.save_file_path.text()
+		if save_file_path and os.path.exists(os.path.dirname(save_file_path)):
+			self.output_report(crop, model_duration, save_file_path)
 	
 	def set_inputs(self):
 		self.inputs = {}
@@ -170,13 +191,15 @@ class KharifModelPointDockWidget(QtGui.QDockWidget, FORM_CLASS):
 		for i in range(12):
 			self.inputs['et0'] += ([float(self.ET0.item(i, 0).text())] * days_of_month[i])
 	
+	def get_date_from_index(self, i):
+		# Always considering an year of 365 days
+		if i < 214:
+			return datetime.date.fromordinal(datetime.date(2016, 12, 31).toordinal() + 151 + (i + 1)).strftime('%d %B')
+		else:
+			return datetime.date.fromordinal(datetime.date(2016, 12, 31).toordinal() + 365 + ((i - 214) + 1)).strftime(
+				'%d %B')
+	
 	def set_output(self, crop, model_duration):
-		def get_date_from_index(i):
-			# Always considering an year of 365 days
-			if i < 214:
-				return datetime.date.fromordinal(datetime.date(2016, 12, 31).toordinal() + 151 + (i+1)).strftime('%d %B')
-			else:
-				return datetime.date.fromordinal(datetime.date(2016, 12, 31).toordinal() + 365 + ((i-214)+1)).strftime('%d %B')
 		self.results.setItem(0, 0, QtGui.QTableWidgetItem('30 November'))
 		self.results.setItem(0, 1, QtGui.QTableWidgetItem('{}'.format(sum(self.point_model.budget.rain[:183]))))
 		self.results.setItem(0, 2, QtGui.QTableWidgetItem('{:6.2f}'.format(self.point_model.budget.sm[182])))
@@ -186,7 +209,7 @@ class KharifModelPointDockWidget(QtGui.QDockWidget, FORM_CLASS):
 		self.results.setItem(0, 6, QtGui.QTableWidgetItem('{:6.2f}'.format(sum(self.point_model.budget.AET[:183]))))
 		self.results.setItem(0, 7, QtGui.QTableWidgetItem('{:6.2f}'.format(sum(self.point_model.budget.GW_rech[:183]))))
 		
-		self.results.setItem(1, 0, QtGui.QTableWidgetItem(get_date_from_index(crop.end_date_index)))
+		self.results.setItem(1, 0, QtGui.QTableWidgetItem(self.get_date_from_index(crop.end_date_index)))
 		self.results.setItem(1, 1, QtGui.QTableWidgetItem('{}'.format(sum(self.point_model.budget.rain[:crop.end_date_index+1]))))
 		self.results.setItem(1, 2, QtGui.QTableWidgetItem('{:6.2f}'.format(self.point_model.budget.sm[crop.end_date_index])))
 		self.results.setItem(1, 3, QtGui.QTableWidgetItem('{:6.2f}'.format(sum(self.point_model.budget.runoff[:crop.end_date_index+1]))))
@@ -195,7 +218,7 @@ class KharifModelPointDockWidget(QtGui.QDockWidget, FORM_CLASS):
 		self.results.setItem(1, 6, QtGui.QTableWidgetItem('{:6.2f}'.format(sum(self.point_model.budget.AET[:crop.end_date_index+1]))))
 		self.results.setItem(1, 7, QtGui.QTableWidgetItem('{:6.2f}'.format(sum(self.point_model.budget.GW_rech[:crop.end_date_index+1]))))
 		for i in range(model_duration):
-			self.results.setItem(i+2, 0, QtGui.QTableWidgetItem(get_date_from_index(i)))    # Date
+			self.results.setItem(i+2, 0, QtGui.QTableWidgetItem(self.get_date_from_index(i)))    # Date
 			self.results.setItem(i+2, 1, QtGui.QTableWidgetItem('{}'.format(self.point_model.budget.rain[i])))    # Rain
 			self.results.setItem(i+2, 2, QtGui.QTableWidgetItem('{:6.2f}'.format(float(self.point_model.budget.sm[i]))))    # SM
 			self.results.setItem(i+2, 3, QtGui.QTableWidgetItem('{:6.2f}'.format(float(self.point_model.budget.runoff[i]))))    # Runoff
@@ -203,6 +226,29 @@ class KharifModelPointDockWidget(QtGui.QDockWidget, FORM_CLASS):
 			self.results.setItem(i+2, 5, QtGui.QTableWidgetItem('{:6.2f}'.format(float(crop.PET[i]))))    # PET
 			self.results.setItem(i+2, 6, QtGui.QTableWidgetItem('{:6.2f}'.format(float(self.point_model.budget.AET[i]))))    # AET
 			self.results.setItem(i+2, 7, QtGui.QTableWidgetItem('{:6.2f}'.format(float(self.point_model.budget.GW_rech[i]))))    # GW Recharge
+	
+	def output_report(self, crop, model_duration, filepath):
+		b = self.point_model.budget
+		content = '\n'.join([ip+','+str(ip_val) for ip, ip_val in self.inputs.items()])
+		content += '\n\n' + ','.join([
+			'Date', 'Rainfall', 'SM', 'Runoff', 'Infiltration', 'PET', 'AET', 'GW Recharge'
+		])
+		content += '\n' + ','.join(map(str, [
+			'30 November(Monsoon End)', sum(b.rain[:183]),b.sm[182],sum(b.runoff[:183]),sum(b.infil[:183]),
+			sum(crop.PET[:183]),sum(b.AET[:183]),sum(b.GW_rech[:183]),
+		]))
+		edi = crop.end_date_index
+		content += '\n' + ','.join(map(str, [
+			self.get_date_from_index(edi)+'(Crop End)', sum(b.rain[:edi+1]), b.sm[edi], sum(b.runoff[:edi+1]), sum(b.infil[:edi+1]),
+			sum(crop.PET[:edi+1]), sum(b.AET[:edi+1]), sum(b.GW_rech[:edi+1]),
+		]))
+		for i in range(model_duration):
+			content += '\n' + ','.join(map(str, [
+				self.get_date_from_index(i), b.rain[i], b.sm[i], b.runoff[i],
+				b.infil[i], crop.PET[i], b.AET[i], b.GW_rech[i],
+			]))
+		with open(filepath, 'w') as f:
+			f.write(content)
 	
 	def closeEvent(self, event):
 		self.closingPlugin.emit()
