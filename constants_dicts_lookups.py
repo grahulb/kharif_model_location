@@ -15,34 +15,71 @@ RUNOFF_THRESHOLD = 0
 
 #Dictionary for generic land use types:
 dict_lulc = {
-	'fallow land': 'fallow land',
-	'kharif': 'agriculture',
-	'rabi': 'agriculture',
-	'forest-forest blank':'scrub forest',
-	'forest-deciduous (dry/moist/thorn)-open': 'deciduous open',
+	'forest-forest blank':'scrub',
+	'forest-deciduous (dry/moist/thorn)-open': 'scrub',
 	'agricultural land-crop land-rabi crop': 'agriculture',
-	'forest-scrub forest': 'scrub forest',	
+	'forest-scrub forest': 'scrub',
 	'agricultural land-crop land-kharif crop': 'agriculture',
 	'agricultural land-fallow-current fallow': 'fallow land',
-	'wastelands-scrub land-open scrub': 'scrub open',
-	'wastelands-gullied/ravinous land-gullied': 'scrub open',
-	'forest-deciduous (dry/moist/thorn)-dense/closed': 'deciduous - dense',
-	'wastelands-scrub land-dense scrub': 'scrub dense',
+	'wastelands-scrub land-open scrub': 'wasteland',
+	'wastelands-gullied/ravinous land-gullied': 'wasteland',
+	'forest-deciduous (dry/moist/thorn)-dense/closed': 'forest',
+	'wastelands-scrub land-dense scrub': 'scrub',
 	'built up-built up (rural)-built up area (rural)': 'habitation',
 	'waterbodies-reservoir/tanks-dry-zaid extent': 'water',
 	'waterbodies-reservoir/tanks-dry-rabi extent': 'water',
+	'waterbodies-canal/drain-lined': 'water',
 	'agricultural land-crop land-zaid crop': 'agriculture',
 	'waterbodies-reservoir/tanks-dry-kharif extent': 'water',
-	'waterbodies-canal/drain-lined': 'water',
 	'agricultural land-crop land-two crop area': 'agriculture',
 	'built up-built up (urban)-vegetated area': 'habitation',
-	'wastelands-barren rocky/stony waste': 'scrub dense',
+	'wastelands-barren rocky/stony waste': 'scrub',
 	'agricultural land-plantation-agriculture plantation': 'agriculture',
 	'agricultural land-crop land-more than two crop': 'agriculture',
 	'waterbodies-river/stream-perennial': 'water',
 	'built up-built up (urban)-transportation': 'habitation',
 	'built up-built up (urban)-recreational':'habitation',
-	'built up-built up (urban)-residential': 'habitation'
+	'built up-built up (urban)-residential': 'habitation',
+	'cropped in more than two seasons':'agriculture',
+	'cropped in two seasons':'agriculture',
+	'rabi':'agriculture',
+	'zaid':'agriculture',
+	'kharif':'agriculture',
+	'agricultural plantation':'agriculture',
+	'deciduousdry/ moist/ thorn - dense/ closed':'forest',
+	'evergreen/ semi evergreen - dense/ closed':'forest',
+	'forest plantation':'forest',
+	'tree clad area - dense/ closed':'forest',
+	'fallow land':'fallow land',
+	'built up - compactcontinuous':'habitation',
+	'built up - compact (continuous)': 'habitation',
+	'built up - sparsediscontinuous':'habitation',
+	'industrial area':'habitation',
+	'rural':'habitation',
+	'tree clad area - open':'scrub',
+	'deciduousdry/ moist/ thorn - open':'scrub',
+	'evergreen/ semi evergreen - open':'scrub',
+	'scrub':'scrub',
+	'ash/ cooling pond/ effluent and other waste':'wasteland',
+	'mining - abandoned':'wasteland',
+	'mining - active':'wasteland',
+	'quarry':'wasteland',
+	'barren rocky':'wasteland',
+	'gullied/ ravinous land - gullied':'wasteland',
+	'scrub land - dense/ closed':'wasteland',
+	'scrub land - open':'wasteland',
+	'scrub forest':'scrub',
+	'vegetated/ open area':'wasteland',
+	'reservoir/ tanks - permanent':'water',
+	'reservoir/ tanks - seasonal':'water',
+	'river - non perennial':'water',
+	'river - perennial':'water',
+	'canal/ drain':'water',
+	'lakes/ ponds - permanent':'water',
+	'lakes/ ponds - seasonal':'water',
+	'deciduous (dry/ moist/ thorn) - open': 'scrub',
+	'deciduous (dry/ moist/ thorn) - dense/ closed' :  'forest',
+	'built up - sparse (discontinuous)' : 'habitation'
 }
 
 #Lookup for properties of various soils
@@ -63,7 +100,7 @@ dict_SoilProperties = {
 	'clayey': ('D', 28, 51, 0, 0.303, 0.427, 0.487, 0.52, 1.36, 0.12),
 	'gravelly clay': ('D', 23, 48, 10, 0.285, 0.415, 0.488, 0.83, 1.36, 0.12),
 	'gravelly clay loam': ('D', 31, 34, 10, 0.206, 0.343, 0.444, 2.32, 1.47, 0.12),
-	'gravelly loam': ('B', 41, 17, 10, 0.109, 0.0244, 0.408, 10.83, 1.57, 0.12),
+	'gravelly loam': ('B', 41, 17, 10, 0.109, 0.244, 0.408, 10.83, 1.57, 0.12),
 	'gravelly sandy clay loam': ('B', 49, 26, 10, 0.16, 0.273, 0.412, 5.83, 1.56, 0.1),
 	'gravelly sandy loam': ('B', 63, 10, 10, 0.065, 0.158, 0.402, 33.29, 1.58, 0.08),
 	'gravelly silty clay': ('C', 7, 47, 10, 0.277, 0.42, 0.512, 1.7, 1.29, 0.13),
@@ -81,18 +118,17 @@ dict_SoilProperties = {
 	'habitation mask': ('D', 32, 34, 0, 0.206, 0.341, 0.442, 2.7, 1.48, 0.14)
 }
 
-#Lookup for SCS curve no based on land ussage and HSG: 
+#Lookup for SCS curve no based on land ussage and HSG:
 dict_RO = {
 	'agriculture': {'A': 67, 'B': 78, 'C': 85, 'D': 89},
-	'deciduous - dense': {'A': 30, 'B': 55, 'C': 70, 'D': 77},
-	'deciduous open': {'A': 36, 'B': 60, 'C': 73, 'D': 79},
-	'fallow land': {'A': 77, 'B': 86, 'C': 91, 'D': 94},
+	'forest': {'A': 30, 'B': 55, 'C': 70, 'D': 77},
+ 	'fallow land': {'A': 77, 'B': 86, 'C': 91, 'D': 94},
 	'habitation': {'A': 77, 'B': 85, 'C': 90, 'D': 92},
-	'scrub dense': {'A': 49, 'B': 69, 'C': 79, 'D': 84},
-	'scrub forest': {'A': 57, 'B': 73, 'C': 82, 'D': 86},
-	'scrub open': {'A': 68, 'B': 79, 'C': 86, 'D': 89},
-	'water': {'A': 100, 'B': 100, 'C': 100, 'D': 100}
-}
+	'scrub': {'A': 49, 'B': 69, 'C': 79, 'D': 84},
+	'wasteland': {'A': 68, 'B': 79, 'C': 86, 'D': 89},
+	'water': {'A': 100, 'B': 100, 'C': 100, 'D': 100},
+	'current fallow': {'A': 72, 'B': 81, 'C': 88, 'D': 91}
+	}
 
 #Lookup for Soil depth with respect to given soil depth in Soil map: 
 dict_SoilDep = {
@@ -108,19 +144,34 @@ dict_SoilDep = {
 
 #Lookup for Crop properties : KC, depletion factor, root depth
 dict_crop = {
-	'soyabean':		(	[0.3]*20 + [0.7]*25 + [1.15]*45 + [0.7]*20,		0.5,	0.9		),
-	'bajra':		(	[0.7]*15 + [1]*25 + [0.3]*40 + [1.5]*25,		0.55,	1.5		),
-	'moong':		(	[0.5]*20 + [1.15]*30 + [1.1]*35 + [0.5]*15,		0.45,	0.75	),
-	'sorghum':		(	[0.53]*20 + [0.82]*35 + [1.24]*45 + [0.85]*30,	0.55,	1.5		),
-	'cotton':		(	[0.45]*45 + [0.75]*90 + [1.15]*45 + [0.75]*45,	0.65,	1.35	),
-	'udid':			(	[0.5]*20 + [1.15]*30 + [0.35]*35 + [0.4]*15,	0.45,	0.75	),
-	'orange':		(	[0.8]*60 + [0.8]*90 + [0.8]*120 + [3]*95,		0.5,	1.1		),
-	'rice':			(	[1.15]*30 + [1.23]*30 + [1.14]*80 + [1.02]*40,	0.2,	0.75	),
-	'sunflower':	(	[0.63]*25 + [0.82]*35 + [1.12]*45 + [1.23]*25,	0.45,	1.15	),
-	'tur':			(	[0.45]*20 + [0.85]*30 + [1.15]*35 + [1.05]*15,	0.45,	0.75	),
-	'grapes':		(	[0.3]*20 + [0.7]*40 + [1.15]*120 + [2]*60,		0.5,	0.9		),
-	'maize':		(	[0.55]*20 + [1]*35 + [1.23]*40 + [0.67]*30,		0.55,	1.35	)
-}
+	'bajra':		 	([0.34]*13 +  [0.67]*21 + [1.05]*34 + [0.62]* 22, 	0.55, 	1.0),
+	'banana':		 	([0.53]*112 + [1.17]*84 + [1.06]*112 + [1.06]*7,	0.35,	0.5),
+	'brinjal': 			([0.51]*44 + [0.84]*58 + [1.29]*58 + [0.9]*30, 		0.45,	0.7),
+	'cauliflower': 		([0.63]*14 + [1.05]*18 + [1.46]*43 + [1.25]*10, 	0.45, 	0.4),
+	'lemon':			([0.7]*60 + [0.65]*90 + [0.7]*120 + [0.7]*95, 		0.5,	1.1),
+	'cotton':			([0.51]*30 + [0.85]*50 + [1.3]*55 + [0.85]* 45,		0.65, 	1.0),
+	'fodder_crop': 		([0.35]*14 + [0.7]*25 + [1.01]*29 + [0.61]*22, 		0.55,	0.8),
+	'grapes': 			([0.44]*30 + [1.52]*61 + [0.73]*183 + [0.73]*91, 	0.35,	1.0),
+	'groundnut': 		([0.47]*23 + [0.79]*32 + [1.1]*42 + [0.74]*23, 		0.5,	0.5),
+	'maize': 			([0.56]*14 + [1.11]*25 + [1.6]*29 + [0.97]*22,	 	0.55,	0.9),
+	'chilly': 			([0.44]*40 + [0.87]*55 + [1.31]*63 + [1.12]* 32, 	0.3,	0.5),
+	'moong': 			([0.57]*8 + [0.95]*12 + [1.4]*24 + [0.63]*16, 		0.4,	0.6),
+	'sweetlime': 			([0.7]*60 + [0.65]*90 + [0.7]*120 + [0.7]*95, 		0.5,	1.1),
+	'onion': 			([0.53]*12 + [0.75]*19 + [1.07]*54 + [1.07]*30, 	0.35,	0.3),
+	'orange': 			([0.7]*60 + [0.65]*90 + [0.7]*120 + [0.7]*95, 		0.5,	1.1),
+	'pomegranate': 		([0.46]*21 + [0.26]*77 + [0.56]*56 + [0.7]*211, 	0.5,	1.1),
+	'potato': 			([0.62]*25 + [1.03]*30 + [1.58]*30 + [1.16]*20, 	0.35,	0.4),
+	'small_vegetables':([0.73]*20 + [0.97]*20 + [1.61]*15 + [1.45]*5, 		0.3,	0.3),
+	'sorghum':			([0.34]*20 + [0.72]*30 + [1.06]*40 + [0.63]*30, 	0.55,	1.0),
+	'soybean': 		([0.33]*16 + [0.7]*23 + [1.03]*47 + [0.56]*19, 		0.5,	0.6),
+	'sugarcane': 		([0.51]*28 + [1.58]*48 + [0.95]*151 + [0.95]*138, 	0.5,	1.2),
+	'sunflower': 		([0.36]*17 + [0.78]*29 + [1.19]*38 + [0.57]*21, 	0.45,	0.8),
+	'tomato': 			([0.58]* 30 + [0.97]*41 + [1.49]*41 + [1.04]*25, 	0.4,	0.7),
+	'tur': 				([0.43]*28 + [0.72]*46 + [1.1]*50 + [0.72]*41, 		0.65,	1.0),
+	'turmeric': 		([0.59]*40 + [0.98]*67 + [1.51]*73 + [0.98]*60, 	0.65,	1.0),
+	'udid': 			([0.41]*11 + [0.69]*17 + [1.01]*33 + [0.46]*22, 	0.4,	0.6),
+	'vegetables': 		([0.53]*24 + [0.89]*33 + [1.36]*33 + [0.94]*20, 	0.35,	0.4)
+ }
 
 #Lookup for properties of vegetation on various LULC types : KC, depletion factor, root depth
 #	'deciduous open', 'scrub dense' and 'scrub forest' have been pooled together as 'Scrub Forest'

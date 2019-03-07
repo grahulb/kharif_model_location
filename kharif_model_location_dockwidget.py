@@ -190,6 +190,14 @@ class KharifModelPointDockWidget(QtGui.QDockWidget, FORM_CLASS):
 		self.inputs['et0'] = [];    days_of_month = [30,31,31,30,31,30,31,31,28,31,30,31]
 		for i in range(12):
 			self.inputs['et0'] += ([float(self.ET0.item(i, 0).text())] * days_of_month[i])
+		if self.coordinate_x.text() and self.coordinate_y.text():
+			try:
+				x = str(float(self.coordinate_x.text()))
+				y = str(float(self.coordinate_y.text()))
+			except:
+				pass
+			self.inputs['X coordinate'] = x
+			self.inputs['Y coordinate'] = y
 	
 	def get_date_from_index(self, i):
 		# Always considering an year of 365 days
@@ -229,7 +237,11 @@ class KharifModelPointDockWidget(QtGui.QDockWidget, FORM_CLASS):
 	
 	def output_report(self, crop, model_duration, filepath):
 		b = self.point_model.budget
-		content = '\n'.join([ip+','+str(ip_val) for ip, ip_val in self.inputs.items()])
+		if 'X coordinate' in self.inputs:
+			content = 'Coordinates:,X:' + self.inputs['X coordinate'] + ',Y:' + self.inputs['Y coordinate'] + '\n'
+		else:
+			content = ''
+		content += '\n'.join([ip+','+str(ip_val) for ip, ip_val in self.inputs.items() if 'coordinate' not in ip])
 		content += '\n\n' + ','.join([
 			'Date', 'Rainfall', 'SM', 'Runoff', 'Infiltration', 'PET', 'AET', 'GW Recharge'
 		])
